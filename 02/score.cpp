@@ -19,8 +19,7 @@ constexpr int DRAW_SCORE = 3;
 constexpr int WIN_SCORE = 6;
 
 int main() {
-    // TODO(#1): Why can't we make this const?
-    map<char, map<char, int>> scores{
+    const map<char, map<char, int>> scores{
         {'A', {{'X', ROCK_SCORE + DRAW_SCORE}, {'Y', PAPER_SCORE + WIN_SCORE}, {'Z', SCISSORS_SCORE + LOSS_SCORE}}},
         {'B', {{'X', ROCK_SCORE + LOSS_SCORE}, {'Y', PAPER_SCORE + DRAW_SCORE}, {'Z', SCISSORS_SCORE + WIN_SCORE}}},
         {'C', {{'X', ROCK_SCORE + WIN_SCORE}, {'Y', PAPER_SCORE + LOSS_SCORE}, {'Z', SCISSORS_SCORE + DRAW_SCORE}}},
@@ -35,7 +34,7 @@ int main() {
         iss >> opponent;
         char mine;
         iss >> mine;
-        total += scores[opponent][mine];
+        total += scores.at(opponent).at(mine);
     }
     cout << total << "\n";
 }
