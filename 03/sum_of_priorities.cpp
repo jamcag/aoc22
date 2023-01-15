@@ -32,7 +32,6 @@ int main() {
     string s;
 
     int total = 0;
-    int cnt;
     while (ifs >> s) {
         const int length = s.size();
         const int midpoint = length / 2;
