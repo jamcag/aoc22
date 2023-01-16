@@ -1,23 +1,48 @@
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <stack>
+#include <sstream>
 #include <vector>
 
 int main() {
-    std::ifstream ifs{"transformed_input"};
+    std::ifstream ifs{"input"};
+    std::vector<std::string> crate_stacks;
     std::string s;
-    std::vector<std::stack<char>> crates;
     while (std::getline(ifs, s)) {
         if (s.empty()) {
             break;
         }
-        crates.emplace_back(std::stack<char>{});
-        for (int i = 0; i < s.size(); ++i) {
-            crates[crates.size() - 1].emplace(s.at(i));
-        }
+        crate_stacks.emplace_back(s);
+    }
+    
+    std::istringstream last_line {crate_stacks[crate_stacks.size() - 1]};
+    
+    int num_stacks{};
+    while (last_line >> num_stacks) {}
+
+    // Get the char indices of the stack characters.
+    std::map<int, int> stack_to_idx;
+    const std::string stack_indices = crate_stacks[crate_stacks.size() - 1];
+    for (int i = 0; i < num_stacks; ++i) {
+        // The input is 1-indexed while we zero-index.
+        stack_to_idx[i] = stack_indices.find(std::to_string(i+1));
     }
 
-    std::cout << "s: (" << s << ")\n";
+    // Fill up the data structures with the items in the stacks.
+    std::vector<std::stack<char>> crates;
+    for (int i = 0; i < num_stacks; ++i) {
+        crates.emplace_back(std::stack<char>{});
+    }
+    for (int i = crate_stacks.size() - 2; i >= 0; --i) {
+        for (const auto& [stack, idx_of_stack] : stack_to_idx) {
+            const char stack_char = crate_stacks.at(i).at(idx_of_stack);
+
+            if (stack_char != ' ') {
+                crates.at(stack).emplace(stack_char);
+            }
+        }
+    }
     
     std::string move;
     int cnt;
@@ -32,18 +57,10 @@ int main() {
             crates.at(dst - 1).emplace(elem);
             crates.at(src - 1).pop();
         }
-        std::cout << move << " " << cnt << " " << from << " " << src << " " << to << " " << dst << "\n";
-        for (const auto& crate : crates) {
-            if (crate.size() > 0) {
-                std::cout << crate.top();
-            } else {
-                std::cout << ".";
-            }
-        }
-        std::cout << "\n\n";
     }
 
     for (const auto& crate : crates) {
-        std::cout << crate.top() << "\n";
+        std::cout << crate.top();
     }
+    std::cout << "\n";
 }
