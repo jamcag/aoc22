@@ -4,7 +4,7 @@
 #include <set>
 
 int main() {
-    std::ifstream ifs{"../input"};
+    std::ifstream ifs{"input"};
     std::string s;
     ifs >> s;
 
