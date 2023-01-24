@@ -88,11 +88,6 @@ int main() {
         }
         
         if (row == end[0] && col == end[1]) {
-            if (kDebug) {
-                // for (const auto coord : path) {
-                //     std::cout << coord[0] << ", " << coord[1] << "\n";
-                // }
-            }
             std::cout << path.size() << "\n";
             return EXIT_SUCCESS;
         }
