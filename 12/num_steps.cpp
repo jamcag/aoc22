@@ -85,16 +85,16 @@ int main() {
         const auto [r_row, r_col] = right.back();
         int r = lines[r_row][r_col];
         if ((r_row - 1) >= 0) {
-            l = std::max(l, static_cast<int>(lines[r_row - 1][r_col]));
+            r = std::max(l, static_cast<int>(lines[r_row - 1][r_col]));
         }
         if ((r_row + 1) < lines.size()) {
-            l = std::max(l, static_cast<int>(lines[r_row + 1][r_col]));
+            r = std::max(l, static_cast<int>(lines[r_row + 1][r_col]));
         }
         if ((r_col - 1) >= 0) {
-            l = std::max(l, static_cast<int>(lines[r_row][r_col - 1]));
+            r = std::max(l, static_cast<int>(lines[r_row][r_col - 1]));
         }
         if ((r_col + 1) < lines[0].size()) {
-            l = std::max(l, static_cast<int>(lines[r_row][r_col + 1]));
+            r = std::max(l, static_cast<int>(lines[r_row][r_col + 1]));
         }
         return l < r;
     };
