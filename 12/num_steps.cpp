@@ -6,6 +6,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 // S is start at elevation a
@@ -17,6 +18,7 @@
 
 using Coord = std::array<int, 2>;
 using Path = std::vector<Coord>;
+using IntPath = std::tuple<int, Path>;
 
 constexpr bool kDebug = false;
 
@@ -49,71 +51,36 @@ int main() {
         }
     }
 
-    auto closer_to_end = [&end](Path left, Path right) {
-        const Coord left_cur = left.back();
-        const Coord right_cur = right.back();
-        const auto l = ((left_cur[0] - end[0]) * (left_cur[0] * end[0])) + ((left_cur[1] - end[1]) * (left_cur[1] - end[1]));
-        const auto r = ((right_cur[0] - end[0]) * (right_cur[0] * end[0])) + ((right_cur[1] - end[1]) * (right_cur[1] - end[1]));
-        return l < r;
+    auto closer = [end](IntPath left, IntPath right) {
+      const auto [l_row, l_col] = std::get<1>(left).back();
+      const auto [r_row, r_col] = std::get<1>(right).back();
+      const auto l_l1_norm = std::abs(l_row - end[0]) + std::abs(l_col - end[1]);
+      const auto r_l1_norm = std::abs(r_row - end[0]) + std::abs(r_col - end[1]);
+      // Prefer *lower* cost-to-go.
+      return std::get<1>(left).size() + l_l1_norm > std::get<1>(right).size() + r_l1_norm;
     };
 
-    // Prefer climbing.
-    auto higher = [lines](Path left, Path right) {
-        const auto [l_row, l_col] = left.back();
-        const auto [r_row, r_col] = right.back();
-        const int l = lines[l_row][l_col];
-        const int r = lines[r_row][r_col];
-        return l < r;
-    };
-
-    auto higher_neighbours = [lines](Path left, Path right) {
-        const auto [l_row, l_col] = left.back();
-        int l = lines[l_row][l_col];
-        if ((l_row - 1) >= 0) {
-            l = std::max(l, static_cast<int>(lines[l_row - 1][l_col]));
-        }
-        if ((l_row + 1) < lines.size()) {
-            l = std::max(l, static_cast<int>(lines[l_row + 1][l_col]));
-        }
-        if ((l_col - 1) >= 0) {
-            l = std::max(l, static_cast<int>(lines[l_row][l_col - 1]));
-        }
-        if ((l_col + 1) < lines[0].size()) {
-            l = std::max(l, static_cast<int>(lines[l_row][l_col + 1]));
-        }
-
-        const auto [r_row, r_col] = right.back();
-        int r = lines[r_row][r_col];
-        if ((r_row - 1) >= 0) {
-            r = std::max(l, static_cast<int>(lines[r_row - 1][r_col]));
-        }
-        if ((r_row + 1) < lines.size()) {
-            r = std::max(l, static_cast<int>(lines[r_row + 1][r_col]));
-        }
-        if ((r_col - 1) >= 0) {
-            r = std::max(l, static_cast<int>(lines[r_row][r_col - 1]));
-        }
-        if ((r_col + 1) < lines[0].size()) {
-            r = std::max(l, static_cast<int>(lines[r_row][r_col + 1]));
-        }
-        return l < r;
-    };
-    std::priority_queue<Path, std::vector<Path>, decltype(higher_neighbours)> frontier(higher_neighbours);
-    std::set<Path> seen;
-    frontier.emplace(Path{start});
+    std::priority_queue<IntPath, std::vector<IntPath>, decltype(closer)> frontier(closer);
+    // The first time a node is seen should be the shortest path to that node.
+    // This isn't the case by default with a std::priority_queue.
+    // We'll need to modify our cmp function so that tiebreaking for equal priorities prefers recently inserted ones.
+    // This is otherwise known as a stable priority queue.
+    std::set<Coord> seen;
+    int idx = 0;
+    frontier.emplace(std::make_tuple(idx++, Path{start}));
     while (frontier.size() > 0) {
-        const auto path = frontier.top();
+        const auto int_path = frontier.top();
+        const auto path = std::get<1>(int_path);
         frontier.pop();
         const auto [row, col] = path.back();
-        seen.emplace(path);
-        // const auto cost = ((row - end[0]) * (row - end[0])) + ((col - end[1]) * (col - end[1]));
-        std::cout << "cost=" << lines[row][col] << "path.size()=" << path.size() << "\n";
+        seen.emplace(path.back());
+        std::cout << "height=" << lines[row][col] << ", path.size()=" << path.size() << "\n";
         if (kDebug) {
             std::vector<std::vector<char>> debug_map;
             for (const auto line : lines) {
                 debug_map.emplace_back();
                 for (const auto ch : line) {
-                    debug_map.back().emplace_back('.');
+                    debug_map.back().emplace_back(ch);
                 }
             }
 
@@ -142,7 +109,7 @@ int main() {
 
             std::cout << "\n";
         }
-        
+
         if (row == end[0] && col == end[1]) {
             std::cout << (path.size() - 1) << "\n";
             return EXIT_SUCCESS;
@@ -156,10 +123,11 @@ int main() {
             auto up_path = path;
             up_path.emplace_back(up);
 
-            if ((height_delta == 1 || height_delta == 0) &&
+            if ((height_delta <= 1) &&
                 std::find(path.begin(), path.end(), up) == path.end() &&
-                std::find(seen.begin(), seen.end(), up_path) == seen.end()) {
-                frontier.emplace(up_path);
+                std::find(seen.begin(), seen.end(), up) == seen.end()) {
+                frontier.emplace(std::make_tuple(idx++, up_path));
+                seen.emplace(up);
             }
         }
         // Down
@@ -169,10 +137,11 @@ int main() {
             auto down_path = path;
             down_path.emplace_back(down);
 
-            if ((height_delta == 1 || height_delta == 0) &&
+            if ((height_delta <= 1) &&
                 std::find(path.begin(), path.end(), down) == path.end() &&
-                std::find(seen.begin(), seen.end(), down_path) == seen.end()) {
-                frontier.emplace(down_path);
+                std::find(seen.begin(), seen.end(), down) == seen.end()) {
+                frontier.emplace(std::make_tuple(idx++, down_path));
+                seen.emplace(down);
             }
         }
 
@@ -183,11 +152,12 @@ int main() {
             auto left_path = path;
             left_path.emplace_back(left);
 
-            if ((height_delta == 1 || height_delta == 0) &&
+            if ((height_delta <= 1) &&
                 std::find(path.begin(), path.end(), left) == path.end() &&
-                std::find(seen.begin(), seen.end(), left_path) == seen.end()) {
-                frontier.emplace(left_path);
-            }       
+                std::find(seen.begin(), seen.end(), left) == seen.end()) {
+                frontier.emplace(std::make_tuple(idx++, left_path));
+                seen.emplace(left);
+            }
         }
 
         // Right
@@ -197,11 +167,13 @@ int main() {
             auto right_path = path;
             right_path.emplace_back(right);
 
-            if ((height_delta == 1 || height_delta == 0) &&
+            if ((height_delta <= 1) &&
                 std::find(path.begin(), path.end(), right) == path.end() &&
-                std::find(seen.begin(), seen.end(), right_path) == seen.end()) {
-                frontier.emplace(right_path);
+                std::find(seen.begin(), seen.end(), right) == seen.end()) {
+                frontier.emplace(std::make_tuple(idx++, right_path));
+                seen.emplace(right);
             }
         }
     }
+    std::cout << "Exiting\n";
 }
