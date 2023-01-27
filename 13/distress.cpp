@@ -1,3 +1,5 @@
+// Packet data consists of ints and lists.
+#include <any>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -5,12 +7,85 @@
 #include <variant>
 #include <vector>
 
-// There should be an Either type or something in the STL.
-using Value = std::variant<std::vector<int>, int>;
+// Note: Need to handle digits 0-10.
+std::vector<std::any> read_list(const std::string& s) {
+    std::vector<std::any> list;
+    std::string cur;
 
-ostream& operator<<(ostream& os, const Value& v) {
+    for (int i = 0; i < s.size(); ++i) {
+        const char& c = s.at(i);
 
-    return os;
+        if (c == '[') {
+            list.emplace_back(read_list(s.substr(i + 1)));
+        } else if (c == ']') {
+            if (!cur.empty()) {
+                list.emplace_back(std::stoi(cur));
+            }
+            return list;
+        } else if (c == ',') {
+            if (!cur.empty()) {
+                list.emplace_back(std::stoi(cur));
+                cur = "";
+            }
+        } else {
+            cur += c;
+        }
+    }
+    return list;
+}
+
+enum Result { in_order, process_more, out_of_order };
+
+Result is_in_order(int l, int r) {
+    if (l < r) {
+        return in_order;
+    }
+    if (l == r) {
+        return process_more;
+    }
+    return out_of_order;
+}
+
+Result is_in_order(const std::vector<std::any>& l, int r) {
+    std::vector<std::any> r_as_list{r};
+    return is_in_order(l, r_as_list);
+}
+
+Result in_order(int l, const std::vector<std::any>& r) {
+    std::vector<std::any> l_as_list{l};
+    return is_in_order(l_as_list, r);
+}
+
+Result is_in_order(const std::vector<std::any>& l, const std::vector<std::any>& r) {
+    for (int i = 0; i < l.size(); ++i) {
+        Result result;
+        try {
+            result = is_in_order(std::any_cast<const int>(l[i]), std::any_cast<const int>(r[i]));
+        } catch(const std::bad_cast& e) {
+            try {
+                result = is_in_order(std::any_cast<const std::vector<std::any>&>(l[i]), std::any_cast<int>(r[i]));
+            } catch(const std::bad_cast& e) {
+                try {
+                    result = is_in_order(std::any_cast<int>(l[i]), std::any_cast<const std::vector<std::any>&>(r[i]));
+                } catch(const std::bad_cast& e) {
+                    try {
+                        result = is_in_order(std::any_cast<const std::vector<std::any>&>(l[i]), std::any_cast<const std::vector<std::any>&>(r[i]));
+                    } catch (const std::bad_cast& e) {
+                        std::cerr << "error: failed conversion\n";
+                        throw;
+                    }
+                }
+            }
+        }
+
+        if (result != process_more) {
+            return result;
+        }
+    }
+    if (l.size() < r.size()) {
+        return in_order;
+    }
+    return out_of_order;
 }
 
 int main() {
@@ -18,53 +93,19 @@ int main() {
     std::string left;
     std::string right;
 
-    std::getline(ifs, left);
-    std::getline(ifs, right);
-
-    std::istringstream lss{left};
-    std::istringstream rss{right};
-
-    std::vector<int> l_ints;
-    char left_brack;
-    lss >> left_brack;
-    char comma;
-    int n;
-    while (lss >> n) {
-        lss >> comma;
-        l_ints.emplace_back(n);
-    }
-    
-    std::vector<int> r_ints;
-    rss >> left_brack;
-    while (rss >> n) {
-        rss >> comma;
-        r_ints.emplace_back(n);
-    }
-
-    std::cout << "l_ints=";
-    for (const auto i : l_ints) {
-        std::cout << i << " ";
-    }
-
-    std::cout << "\nr_ints=";
-    for (const auto i : r_ints) {
-        std::cout << i << " ";
-    }
-    std::cout << "\n";
-    
     int count = 0;
-    // Case 1: Both are integers.
-    for (int i = 0; i < l_ints.size(); ++i) {
-        if (l_ints[i] == r_ints[i]) {
-            continue;
+    while (std::getline(ifs, left) && std::getline(ifs, right)) {
+        const std::vector<std::any> l_ints = read_list(left.substr(1));
+        const std::vector<std::any> r_ints = read_list(right.substr(1));
+        const auto res = is_in_order(l_ints, r_ints);
+
+        if (res == in_order) {
+            count++;
+        } else if (res == process_more) {
+            std::cerr << "got process_more in main loop";
         }
-        if (l_ints[i] < r_ints[i]) {
-            ++count;
-            break;
-        }
-        if (l_ints[i] > r_ints[i]) {
-            break;
-        }
+        std::string blank;
+        std::getline(ifs, blank);
     }
 
     std::cout << "count=" << count << "\n";
