@@ -125,24 +125,27 @@ int main() {
     std::string left;
     std::string right;
 
-    int count = 0;
+    int sum_idx = 0;
+    int idx = 1;
     while (std::getline(ifs, left) && std::getline(ifs, right)) {
         std::cout << "left=" << left << "\n";
         std::cout << "right=" << right << "\n";
         const auto [l_ints, l_read] = read_list(left.substr(1));
         const auto [r_ints, r_read] = read_list(right.substr(1));
-        // std::cout << "l_ints=" << l_ints << "\n";
-        // std::cout << "r_ints=" << r_ints << "\n";
         const auto res = is_in_order(l_ints, r_ints);
 
         if (res == in_order) {
-            count++;
+            std::cout << "\tidx=" << idx << "\n";
+            sum_idx += idx;
         } else if (res == process_more) {
-            std::cerr << "got process_more in main loop";
+            std::cerr << "\tgot process_more in main loop";
+        } else {
+            std::cout << "\tnope\n";
         }
         std::string blank;
         std::getline(ifs, blank);
+        idx++;
     }
 
-    std::cout << "count=" << count << "\n";
+    std::cout << "sum_idx=" << sum_idx << "\n";
 }
