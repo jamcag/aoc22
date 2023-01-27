@@ -44,7 +44,7 @@ enum Result { in_order, process_more, out_of_order };
 Result is_in_order(int l, int r);
 Result is_in_order(const std::vector<std::any>& l, int r);
 Result is_in_order(int l, const std::vector<std::any>& r);
-std::tuple<Result, int> is_in_order(const std::vector<std::any>& l, const std::vector<std::any>& r);
+Result is_in_order(const std::vector<std::any>& l, const std::vector<std::any>& r);
 
 std::ostream& operator<<(std::ostream& os, const std::vector<std::any>& items) {
     std::cout << "[";
@@ -76,22 +76,20 @@ Result is_in_order(int l, int r) {
 
 Result is_in_order(const std::vector<std::any>& l, int r) {
     std::vector<std::any> r_as_list{r};
-    const auto [ret, _] = is_in_order(l, r_as_list);
-    return ret;
+    return is_in_order(l, r_as_list);
 }
 
 Result is_in_order(int l, const std::vector<std::any>& r) {
     std::vector<std::any> l_as_list{l};
-    const auto [ret, _] = is_in_order(l_as_list, r);
-    return ret;
+    return is_in_order(l_as_list, r);
 }
 
-std::tuple<Result, int> is_in_order(const std::vector<std::any>& l, const std::vector<std::any>& r) {
+Result is_in_order(const std::vector<std::any>& l, const std::vector<std::any>& r) {
     // std::cout << "\tl=" << l << std::endl;
     // std::cout << "\tr=" << r << std::endl;
     for (int i = 0; i < l.size(); ++i) {
         if (i == r.size()) {
-            return std::make_tuple(out_of_order, i);
+            return out_of_order;
         }
         Result result;
         try {
@@ -104,9 +102,7 @@ std::tuple<Result, int> is_in_order(const std::vector<std::any>& l, const std::v
                     result = is_in_order(std::any_cast<int>(l[i]), std::any_cast<const std::vector<std::any>&>(r[i]));
                 } catch(const std::bad_cast& e) {
                     try {
-                        auto complicated_result = is_in_order(std::any_cast<const std::vector<std::any>&>(l[i]), std::any_cast<const std::vector<std::any>&>(r[i]));
-                        result = std::get<Result>(complicated_result);
-
+                        result = is_in_order(std::any_cast<const std::vector<std::any>&>(l[i]), std::any_cast<const std::vector<std::any>&>(r[i]));
                     } catch (const std::bad_cast& e) {
                         std::cerr << "error: failed conversion\n";
                         throw;
@@ -115,13 +111,13 @@ std::tuple<Result, int> is_in_order(const std::vector<std::any>& l, const std::v
             }
         }
         if (result != process_more) {
-            return std::make_tuple(result, i);
+            return result;
         }
     }
     if (l.size() < r.size()) {
-        return std::make_tuple(in_order, l.size());
+        return in_order;
     }
-    return std::make_tuple(process_more, 0);
+    return process_more;
 }
 
 int main() {
@@ -137,11 +133,10 @@ int main() {
         const auto [r_ints, r_read] = read_list(right.substr(1));
         // std::cout << "l_ints=" << l_ints << "\n";
         // std::cout << "r_ints=" << r_ints << "\n";
-        const auto [res, idx] = is_in_order(l_ints, r_ints);
+        const auto res = is_in_order(l_ints, r_ints);
 
         if (res == in_order) {
-            std::cout << "\tidx=" << idx << "\n";
-            count += idx;
+            count++;
         } else if (res == process_more) {
             std::cerr << "got process_more in main loop";
         }
