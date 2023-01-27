@@ -198,6 +198,9 @@ int main() {
         std::cout << packets[i] << '\n';
         try {
             const auto packet = std::any_cast<std::vector<std::any>>(packets[i]);
+            if (packet.size() != 1) {
+                continue;
+            }
             const auto inner_packet = std::any_cast<std::vector<std::any>>(packet[0]);
             if (inner_packet.size() == 1 && std::any_cast<int>(inner_packet[0]) == 2) {
                 idx_divider_1 = i + 1;
