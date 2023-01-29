@@ -94,26 +94,40 @@ int main() {
     std::vector<Coord> occupied;
     std::copy(rocks.begin(), rocks.end(), std::back_inserter(occupied));
     occupied.emplace_back(Coord{500, 0});
-    while (occupied.back()[1] <= max_y) {
+    while (true) {
         const auto [sand_x, sand_y] = occupied.back();
         if (std::find(occupied.begin(), occupied.end(), Coord{sand_x, sand_y + 1}) == occupied.end()) {
             occupied.back()[1]++;
+            if (occupied.back()[1] == (max_y + 1)) {
+                std::cout << "Sand hit ground at (" << sand_x << ", " << sand_y << ")\n";
+                occupied.emplace_back(Coord{500, 0});
+            }
             continue;
         }
         if (std::find(occupied.begin(), occupied.end(), Coord{sand_x - 1, sand_y + 1}) == occupied.end()) {
             occupied.back()[0]--;
             occupied.back()[1]++;
+            if (occupied.back()[1] == (max_y + 1)) {
+                std::cout << "Sand hit ground at (" << sand_x << ", " << sand_y << ")\n";
+                occupied.emplace_back(Coord{500, 0});
+            }
             continue;
         }
         if (std::find(occupied.begin(), occupied.end(), Coord{sand_x + 1, sand_y + 1}) == occupied.end()) {
             occupied.back()[0]++;
             occupied.back()[1]++;
+            if (occupied.back()[1] == (max_y + 1)) {
+                std::cout << "Sand hit ground at (" << sand_x << ", " << sand_y << ")\n";
+                occupied.emplace_back(Coord{500, 0});
+            }
             continue;
         }
-
+        if (sand_x == 500 && sand_y == 0) {
+            break;
+        }
         std::cout << "Sand settled at (" << sand_x << ", " << sand_y << ")\n";
         occupied.emplace_back(Coord{500, 0});
     }
 
-    std::cout << ((occupied.size() - 1) - rocks.size()) << std::endl;
+    std::cout << (occupied.size() - rocks.size()) << std::endl;
 }
