@@ -44,44 +44,19 @@ int main() {
         sensor_beacon_pairs.emplace_back(SensorBeacon{Coord{sx, sy}, Coord{bx, by}});
     }
 
-    std::set<Coord> impossible;
-
+    std::vector<Coord> impossible;
     for (const auto [sensor, beacon] : sensor_beacon_pairs) {
         const auto [sensor_x, sensor_y] = sensor;
         const auto [beacon_x, beacon_y] = beacon;
         const int sensor_beacon_dist = manhattan_distance(sensor, beacon);
 
-        std::queue<Coord> frontier;
-        frontier.emplace(sensor);
-        std::set<Coord> seen;
-
-        while (!frontier.empty()) {
-            const auto [cur_x, cur_y] = frontier.front();
-            const int man_dist = manhattan_distance(frontier.front(), sensor);
-            if (sensor_x == 0 && sensor_y == 11) {
-                std::cout << "sensor_x=" << sensor_x << ", sensor_y=" << sensor_y << ", cur_x=" << cur_x << ", cur_y=" << cur_y << ", sensor_beacon_dist=" << sensor_beacon_dist << ", man_dist=" << man_dist << "\n";
-            }
-            seen.emplace(frontier.front());
-            if (frontier.front() != sensor && frontier.front() != beacon) {
-                impossible.emplace(frontier.front());
-            }
-            frontier.pop();
-
-            const auto up = Coord{cur_x, cur_y - 1};
-            if (manhattan_distance(up, sensor) <= sensor_beacon_dist && std::find(seen.begin(), seen.end(), up) == seen.end()) {
-                frontier.emplace(up);
-            }
-            const auto down = Coord{cur_x, cur_y + 1};
-            if (manhattan_distance(down, sensor) <= sensor_beacon_dist && std::find(seen.begin(), seen.end(), down) == seen.end()) {
-                frontier.emplace(down);
-            }
-            const auto left = Coord{cur_x - 1, cur_y};
-            if (manhattan_distance(left, sensor) <= sensor_beacon_dist && std::find(seen.begin(), seen.end(), left) == seen.end()) {
-                frontier.emplace(left);
-            }
-            const auto right = Coord{cur_x + 1, cur_y};
-            if (manhattan_distance(right, sensor) <= sensor_beacon_dist && std::find(seen.begin(), seen.end(), right) == seen.end()) {
-                frontier.emplace(right);
+        for (auto cur_y = sensor_y - sensor_beacon_dist; cur_y <= sensor_y + sensor_beacon_dist; ++cur_y) {
+            const int remaining_x = sensor_beacon_dist - std::abs(cur_y - sensor_y);
+            for (auto cur_x = sensor_x - remaining_x; cur_x <= sensor_x + remaining_x; ++cur_x) {
+                const auto current_coord = Coord{cur_x, cur_y};
+                if ((cur_y == 10 || cur_y == 2000000) && (current_coord != sensor) && (current_coord != beacon)) {
+                    impossible.emplace_back(Coord{cur_x, cur_y});
+                }
             }
         }
         std::cout << "Finished (" << sensor_x << ", " << sensor_y << ")\n";
@@ -89,9 +64,11 @@ int main() {
 
     int cnt_y_eq_10 = 0;
     int cnt_y_eq_2000000 = 0;
+    std::sort(impossible.begin(), impossible.end());
+    const auto last = std::unique(impossible.begin(), impossible.end());
+    impossible.erase(last, impossible.end());
     for (const auto [x, y] : impossible) {
         if (y == 10) {
-            std::cout << "x=" << x << ", y=" << y << "\n";
             cnt_y_eq_10++;
         }
         if (y == 2000000) {
