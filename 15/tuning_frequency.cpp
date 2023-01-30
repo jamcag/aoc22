@@ -5,6 +5,7 @@
 #include <queue>
 #include <set>
 #include <sstream>
+#include <chrono>
 
 using Coord = std::array<int, 2>;
 
@@ -12,14 +13,11 @@ int manhattan_distance(const Coord& x, const Coord& y) {
     return std::abs(x[0] - y[0]) + std::abs(x[1] - y[1]);
 }
 
-class Circle {
+struct Circle {
 public:
-    Circle(const Coord& center, const int radius) : center{center}, radius{radius} {}
-    bool contains(const Coord& x) {
-        return manhattan_distance(x, center) <= radius;
-    }
-private:
-    Coord center;
+    Circle(const int center_x, const int center_y, const int radius) : center_x{center_x}, center_y{center_y}, radius{radius} {}
+    int center_x;
+    int center_y;
     int radius;
 };
 
@@ -27,6 +25,7 @@ int main() {
     std::ifstream ifs{"input"};
     std::string s;
     std::vector<Circle> circles;
+
     while (std::getline(ifs, s)) {
         // Example line:
         // Sensor at x=2, y=18: closest beacon is at x=-2, y=15
@@ -54,18 +53,26 @@ int main() {
         const auto beacon_coord = Coord{bx, by};
 
         std::cout << "bx=" << bx << ", by=" << by << '\n';
-        circles.emplace_back(Circle{sensor_coord, manhattan_distance(sensor_coord, beacon_coord)});
+        const auto r = manhattan_distance(sensor_coord, beacon_coord);
+        circles.emplace_back(sx, sy, r);
     }
 
 
     for (auto x = 0; x < 4000000; ++x) {
-        // std::cout << "x=" << x << "\n";
+        const auto start = std::chrono::high_resolution_clock::now();
         for (auto y = 0; y < 4000000; ++y) {
-            const auto location = Coord{x, y};
-            if (std::none_of(circles.begin(), circles.end(), [&location](auto c){ return c.contains(location); })) {
+            if (std::none_of(circles.begin(),
+                             circles.end(),
+                             [x, y](const auto& c){
+                return (std::abs(c.center_x - x) + std::abs(c.center_y - y)) <= c.radius;
+            })) {
                 std::cout << "x=" << x << ", y=" << y << "\n";
                 std::cout << 4000000 * x + y << "\n";
+                return 0;
             }
         }
+        const auto end = std::chrono::high_resolution_clock::now();
+        const std::chrono::duration<double> diff = end - start;
+        std::cout << diff.count() << "\n";
     }
 }
