@@ -27,7 +27,6 @@ int main() {
     std::ifstream ifs{"input"};
     std::string s;
     std::vector<Circle> circles;
-    std::array<int, 4000000> n_occupied;
     while (std::getline(ifs, s)) {
         // Example line:
         // Sensor at x=2, y=18: closest beacon is at x=-2, y=15
