@@ -84,7 +84,7 @@ int main() {
                 reward[tail.name] = 0;
             } else {
 
-                reward[tail.name] = (30 - (cost[tail.name])) * valve.rate;
+                reward[tail.name] = (minutes_remaining - (cost[tail.name])) * valve.rate;
             }
 
             for (const auto &neighbour: valve.neighbours) {
@@ -114,6 +114,7 @@ int main() {
         minutes_remaining -= cost[best];
         std::cout << "Time remaining " << minutes_remaining << "\n";
         total += max;
+        valves[best].open = true;
         std::cout << "\n";
     }
     std::cout << total << "\n";
