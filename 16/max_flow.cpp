@@ -9,7 +9,7 @@
 #include <stack>
 #include <set>
 
-int const kTimesteps = 7;
+int const kTimesteps = 30;
 
 struct Valve {
     std::string name;
@@ -31,6 +31,9 @@ public:
     World(std::map<std::string, Valve> valves, std::vector<std::string> positive_rate_valves) : valves_{valves}, positive_rate_valves_{positive_rate_valves} {}
     CostToOpen get_costs_to_open(State state) {
         std::string start = state.current;
+        if (start == "JJ") {
+            int dbg = 1;
+        }
         if (!cost_cache_.contains(start)) {
             std::map<std::string, int> costs;
             // Find the shortest paths to every non-zero node.
@@ -40,18 +43,23 @@ public:
             while (!frontier.empty()) {
                 auto cur_path = frontier.top();
                 auto cur = cur_path.back();
-                visited.emplace(cur);
                 frontier.pop();
                 if (std::find(positive_rate_valves_.begin(), positive_rate_valves_.end(), cur) != positive_rate_valves_.end()) {
                     costs[cur] = cur_path.size();
+                    std::cout << "\tstart=" << start << ", end=" << cur << ", cost=" << costs[cur];
+                    std::cout << ", path=";
+                    for (const auto valve : cur_path) {
+                        std::cout << valve;
+                    }
+                    std::cout << "\n";
                 }
                 for (const auto neighbour : valves_[cur].neighbours) {
                     if (!visited.contains(neighbour)) {
                         auto new_path = cur_path;
                         new_path.emplace_back(neighbour);
                         frontier.emplace(new_path);
+                        visited.emplace(neighbour);
                     }
-
                 }
             }
             cost_cache_[start] = costs;
@@ -121,33 +129,58 @@ int main() {
     initial.time_remaining = kTimesteps;
     initial.total_flow = 0;
 
-    std::queue<State> frontier;
-    frontier.emplace(initial);
+    std::queue<std::vector<State>> frontier;
+    frontier.emplace(std::vector<State>{initial});
     int total = 0;
     while (!frontier.empty()) {
-        auto cur_state = frontier.front();
+        auto path = frontier.front();
+        auto cur_state = path.back();
+
         frontier.pop();
         std::cout << "cur_state.current=" << cur_state.current << "\n";
+        std::cout << "cur_state.total_flow=" << cur_state.total_flow << "\n";
+        std::cout << "cur_state.flow_per_minute=" << cur_state.flow_per_minute << "\n";
+        std::cout << "cur_state.time_remaining=" << cur_state.time_remaining << "\n";
+        std::cout << "path=";
+        for (const auto s : path) { std::cout << s.current;}
+        std::cout << "\n";
+
         // Find the path to all closed valves with rate > 0 using BFS.
         CostToOpen costs = world.get_costs_to_open(cur_state);
-
+        if (costs.empty()) {
+            std::cout << "\tempty\n";
+            std::cout << "\ttotal=std::max(cur_state.total_flow + cur_state.flow_per_minute * cur_state.time_remaining=" << cur_state.total_flow + cur_state.flow_per_minute * cur_state.time_remaining << ", total=" << total << ")=";
+            total = std::max(cur_state.total_flow + cur_state.flow_per_minute * cur_state.time_remaining, total);
+            std::cout << total << "\n";
+        }
         for (const auto [k, v] : costs) {
             State next = cur_state;
             next.current = k;
             next.open = cur_state.open;
-            next.open.emplace_back(cur_state.current);
+            next.open.emplace_back(k);
             next.time_remaining -= (v);
 
-            frontier.emplace(next);
-            next.total_flow += cur_state.flow_per_minute * (v);
-            next.flow_per_minute += valves[k].rate;
+            if (next.time_remaining > 0) {
+                next.total_flow += cur_state.flow_per_minute * (v);
+                next.flow_per_minute += valves[k].rate;
+                auto next_path = path;
+                next_path.emplace_back(next);
+                frontier.emplace(next_path);
 
+            } else {
+                std::cout << "\telse";
+                std::cout <<" cur_state.flow_per_minute=" << cur_state.flow_per_minute << ", cur_state.time_remaining=" << cur_state.time_remaining << "\n";
+                next.total_flow += cur_state.flow_per_minute * cur_state.time_remaining;
+            }
+            std::cout << "\t\ttotal=std::max(next.total_flow=" << next.total_flow << ", total=" << total << ")=";
+            total = std::max(total, next.total_flow);
+            std::cout << total << "\n";
             std::cout << "\tnext.current=" << next.current << "\n";
             std::cout << "\t\tnext.time_remaining=" << next.time_remaining << "\n";
             std::cout << "\t\tnext.total_flow=" << next.total_flow << "\n";
             std::cout << "\t\tnext.flow_per_minute=" << next.flow_per_minute << "\n";
-            total = std::max(total, next.total_flow);
         }
+        std::cout << "\ttotal=" << total << "\n";
         std::cout << "\tfrontier.size()=" << frontier.size() << "\n";
     }
 
