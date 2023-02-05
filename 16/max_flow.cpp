@@ -2,6 +2,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <queue>
 #include <sstream>
@@ -81,14 +82,14 @@ private:
 
 void valves_to_graphviz(const std::map<std::string, Valve>& valves) {
     std::ofstream ofs{"all_valves.dot"};
-    ofs << "digraph G {";
+    ofs << "graph G {\n";
     for (const auto [k, v] : valves) {
         ofs << "\t" << k << "[label=\"" << k << "\\n" << v.rate << "\"];\n";
     }
     // Print neighbours.
     for (const auto [k, v] : valves) {
         for (const auto neighbour : v.neighbours) {
-            ofs << "\t" << k << " -> " << neighbour << ";\n";
+            ofs << "\t" << k << " -- " << neighbour << ";\n";
         }
     }
     ofs << "}";
@@ -96,16 +97,22 @@ void valves_to_graphviz(const std::map<std::string, Valve>& valves) {
 
 void important_valves_to_graphviz(const std::vector<std::string>& positive_rate_valves, World& world) {
     std::ofstream ofs{"important_valves.dot"};
-    ofs << "digraph G {\n";
-    for (const auto valve : positive_rate_valves) {
+    ofs << "graph G {\n";
+
+    std::vector<std::string> important_valves{"AA"};
+    std::copy(positive_rate_valves.begin(), positive_rate_valves.end(), std::back_inserter(important_valves));
+
+    for (const auto valve : important_valves) {
         ofs << "\t" << valve << "[label=\"" << valve << "\\n" << world.get_rate(valve) << "\"];\n";
     }
 
-    for (const auto valve : positive_rate_valves) {
+    for (const auto valve : important_valves) {
         State s;
         s.current = valve;
         for (const auto [neighbour, cost] : world.get_costs_to_open(s)) {
-            ofs << "\t" << valve << " -> " << neighbour << " [label=\"" << cost << "\"];\n";
+            if (valve.at(0) < neighbour.at(0) && valve.at(1) < neighbour.at(1)) {
+                ofs << "\t" << valve << " -- " << neighbour << " [label=\"" << cost << "\"];\n";
+            }
         }
     }
     ofs << "}";
