@@ -7,6 +7,7 @@ namespace aoc {
 
 struct Agent {
   std::string current;
+  int steps_remaining;
 };
 
 } // namespace aoc

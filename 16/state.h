@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "agent.h"
+#include "world.h"
+
 namespace aoc {
 
 struct State {
@@ -13,6 +16,11 @@ struct State {
   int time_remaining;
   int flow_per_minute = 0;
   int total_flow = 0;
+
+  std::vector<State> expand(World& world) {
+    std::vector<State> states;
+    return states;
+  }
 };
 
 } // namespace aoc
