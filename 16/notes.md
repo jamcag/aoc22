@@ -1,3 +1,34 @@
+# 20230206
+## Data Structures
+```py
+class Agent:
+  loc: str
+  time_to_dst: int
+
+class State:
+  elf: Agent
+  eleph: Agent
+  time_remaining: int
+  open_valves: asd
+
+class World:
+  valves: Mapping[str, Valve]
+  positive_valves: List[str]
+
+class Valve:
+  name: str
+  neighbours: List[str]
+  rate: int
+```
+## Algorithm
+- Start with the elephant and elf at node "AA"
+- Create a queue and enqueue a state with elf and elph both at "AA"
+- While the  queue is non-empty:
+  - Pop a state $s$ from the queue
+  - If elf needs a new vertex, pick one
+  - If elph needs a new vertex, pick one
+  - If state is terminal then update the
+
 # 20230204
 Need to come up with an example where it skips over one.
 

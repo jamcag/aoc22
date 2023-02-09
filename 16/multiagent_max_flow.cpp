@@ -11,14 +11,20 @@
 #include <stack>
 #include <set>
 
-#include "state.h"
 #include "agent.h"
+#include "state.h"
 #include "valve.h"
+#include "world.h"
 
 int const kTimesteps = 30;
 
 using CostToOpen = std::map<std::string, int>;
 
+/* An Agent is at a location, can move to new locations, and open valves.
+ * A State describes where agents are, which valves are open, and how much time is left.
+ * A Valve is either open or closed.
+ * A World contains the environment which we can search.
+ */
 int main() {
     std::ifstream ifs{"input"};
     std::string s;
@@ -56,9 +62,7 @@ int main() {
             valve.neighbours.emplace_back(other_valve);
         }
     }
-    valves_to_graphviz(valves);
     auto world = World {valves, positive_rate_valves};
-    important_valves_to_graphviz(positive_rate_valves, world);
     State initial;
     initial.current = "AA";
     initial.time_remaining = kTimesteps;

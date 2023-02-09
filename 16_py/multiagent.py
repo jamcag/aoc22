@@ -42,16 +42,13 @@ for valve, rate in rates.items():
 # Do a depth-first search for the highest max.
 @dataclass
 class Agent:
-    valve: str
-    time_remaining: int
-
-    def needs_next_valve(self)::
-        return time_remaining == 0
+    dest_valve: str
+    time_to_dest: int
 
 @dataclass
 class State:
     elf: Agent
-    elephant: Agent
+    elph: Agent
     opened: List[str]
     rate: int
     total_flow: int
@@ -64,28 +61,41 @@ def expand_state(state: State):
 
 
     # Case 1: Both need to go somewhere, selet unique ones.
-    if state.elf and state.elephant:
-        elf_costs = cost_to_go(state.elf)
-        eleph_costs = cost_to_go(state.elephant)
+    if state.elf.time_to_dest == 0 and state.elph.time_to_dest == 0:
+        elf_costs = cost_to_go[state.elf.dest_valve]
+        elph_costs = cost_to_go[state.elph.dest_valve]
         for elf_neighbour, elf_cost in elf_costs.items():
             if elf_neighbour in state.opened:
                 continue
-            for eleph_neighbour, eleph_cost in eleph_costs.items():
-                if eleph.neighbour in state.opened:
+            for elph_neighbour, elph_cost in elph_costs.items():
+                if elph_neighbour in state.opened:
                     continue
-                if elf_neighbour == eleph_neighbour:
+                if elf_neighbour == elph_neighbour:
                     continue
 
                 # Create a state for the closer one.
                 # TODO: Will need to figure out what to do when this one is expanded.
-                if elf_cost < eleph_cost:
-                    ...
-                elif eleph_cost < elf_cost:
-                    ...
+                if elf_cost < elph_cost:
+                    new_state = State(elf=Agent(elf_neighbour, 0),
+                                      elph=Agent(elph_neighbour, elph_cost - elf_cost),
+                                      rate = state.rate + rates[elf_neighbour],
+                                      total_flow = state.total_flow + state.rate * elf_cost,
+                                      time_remaining = state.time_remaining - elf_cost,
+                                      opened = state.opened + [elf_neighbour])
+                    states.append(new_state)
+                elif elph_cost < elf_cost:
+                    new_state = State(elf=Agent(elf_neighbour, elph_cost),
+                                      elph=Agent(elph_neighbour, elf_cost - elph_cost),
+                                      rate = state.rate + rates[elph_neighbour],
+                                      total_flow = state.total_flow + state.rate * elph_cost,
+                                      time_remaining = state.time_remaining - elph_cost,
+                                      opened = state.opened + [elf_neighbour])
+                    states.append(new_state)
                 else:
-                    time_remaining = state.time_remaining - cost
+                    time_remaining = state.time_remaining - elf_cost
 
                     if time_remaining < 0:
+                        # TODO: Update this
                         new_state = State(current=neighbour,
                                         opened=state.opened + [neighbour],
                                         rate=state.rate + rates[neighbour],
@@ -93,11 +103,42 @@ def expand_state(state: State):
                                         time_remaining=time_remaining)
                         states.append(new_state)
                     else:
-                        new_state
-                        states.append(State(current=state.current,
-                                            opened=state))
-                ...
-initial = State(elf="AA", elephant="AA", opened=[], rate=0, total_flow=0, time_remaining=30)
+                        states.append(State(elf=Agent(elf_neighbour, 0),
+                                            elph=Agent(elph_neighbour, 0),
+                                            rate=state.rate + rates[elf_neighbour] + rates[elph_neighbour],
+                                            total_flow=state.total_flow + state.rate * elf_cost,
+                                            time_remaining=state.time_remaining - elf_cost,
+                                            opened=state.opened + [elf_neighbour, elph_neighbour]))
+    elif state.elf.time_to_dest == 0:
+        # Find a new valve for elph to go to.
+        for elph_neighbour, elph_cost in cost_to_go[state.elph.dest_valve]:
+            elf_cost = state.elf.time_to_dest
+            if elf_cost < elph_cost:
+                new_state = State(elf=Agent(elf_neighbour, 0),
+                                  elph=Agent(elph_neighbour, elph_cost - elf_cost),
+                                  rate = state.rate + rates[elf_neighbour],
+                                  total_flow = state.total_flow + state.rate * elf_cost,
+                                  time_remaining = state.time_remaining - elf_cost,
+                                  opened = state.opened + [elf_neighbour])
+                states.append(new_state)
+            elif elph_cost < elf_cost:
+                new_state = State(elf=Agent(elf_neighbour, elph_cost),
+                                  elph=Agent(elph_neighbour, elf_cost - elph_cost),
+                                  rate = state.rate + rates[elph_neighbour],
+                                  total_flow = state.total_flow + state.rate * elph_cost,
+                                  time_remaining = state.time_remaining - elph_cost,
+                                  opened = state.opened + [elf_neighbour])
+                states.append(new_state)
+            else:
+                time_remaining = state.time_remaining - elf_cost
+                states.append(State(elf=Agent(elf_neighbour, 0),
+                                elph=Agent(elph_neighbour, 0),
+                                rate=state.rate + rates[elf_neighbour] + rates[elph_neighbour],
+                                total_flow=state.total_flow + state.rate * elf_cost,
+                                time_remaining=state.time_remaining - elf_cost,
+                                opened=state.opened + [elf_neighbour, elph_neighbour]))
+    return states
+expand_state(State(elf=Agent("AA", 0), elph=Agent("AA", 0), opened=[], rate=0, total_flow=0, time_remaining=26))
 
 for idx, state in expand_state(initial):
     print(f"{idx=}, {state=}")
