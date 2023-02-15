@@ -2,3 +2,6 @@ input
 .idea
 CMakeLists.txt
 cmake-build-debug
+*.exe
+*.obj
+.vscode
